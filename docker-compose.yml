@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: quizzer
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/src/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+
+  backend:
+    build: ./backend
+    env_file:
+      - ./.env
+    environment:
+      - DB_USER=postgres
+      - DB_HOST=db
+      - DB_NAME=quizzer
+      - DB_PASSWORD=postgres
+      - DB_PORT=5432
+      - JWT_SECRET=your-secret-key-here
+      - GEMINI_API_KEY=AIzaSyAsHVhMjvDvLY18vD8feEGzgB7jh-R91XQ
+    ports:
+      - "5000:5000"
+    depends_on:
+      - db
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - REACT_APP_API_URL=http://localhost:5000
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data: 
