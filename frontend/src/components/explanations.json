@@ -1,0 +1,74 @@
+{
+  "Auth": {
+    "ui": "A primeira tela exibida ao usuário é a de autenticação, onde ele pode fazer login ou criar uma nova conta. O usuário insere email e senha (e nome, se for cadastro). Ao clicar em 'Sign in', o sistema tenta autenticar; ao clicar em 'Sign up', cria uma nova conta. Se houver erro, uma mensagem aparece. O botão abaixo alterna entre login e cadastro.",
+    "code": "O componente Auth controla o estado do formulário de login/cadastro, alternando entre os modos com um botão. Ao submeter, faz requisição para a API de login ou registro, armazena o token no localStorage e redireciona para a Home. Exibe feedback de carregamento e erros.",
+    "integracao_backend": "Faz POST para /api/auth/login (login) ou /api/auth/register (cadastro). Recebe o token JWT e salva no localStorage para autenticação nas próximas requisições."
+  },
+  "Home": {
+    "ui": "Após o login, o usuário vê a tela Home, com seus quizzes listados. Ao clicar em 'Create Quiz', abre o modal de criação. Clicando em um quiz, pode iniciar, editar ou remover. Se não houver quizzes, aparece uma mensagem incentivando a criar o primeiro quiz.",
+    "code": "O componente Home gerencia o estado dos quizzes do usuário, busca da API, permite remover quizzes e navega para criação ou edição. O botão 'Create Quiz' abre o modal de criação.",
+    "integracao_backend": "Faz GET para /api/quizzes para buscar quizzes do usuário. Ao remover um quiz, faz DELETE para /api/quizzes/:id. Ao criar um quiz, faz POST para /api/quizzes. Todas as requisições usam o token JWT para autenticação."
+  },
+  "CreateQuizModal": {
+    "ui": "Ao clicar em 'Create Quiz', abre um modal onde o usuário pode escolher criar manualmente ou gerar perguntas com IA. No modo manual, adiciona perguntas, opções e respostas. No modo IA, define o tema e quantidade de perguntas, e o sistema gera automaticamente. Ao salvar, o quiz é criado e o modal fecha.",
+    "code": "O CreateQuizModal alterna entre abas de criação manual e IA. No manual, controla perguntas e opções, permitindo adicionar/remover. No IA, faz requisição para gerar perguntas e cria o quiz na API. Ao salvar, chama callbacks para atualizar a lista e fechar o modal.",
+    "integracao_backend": "No modo manual, faz POST para /api/quizzes para criar o quiz. No modo IA, faz POST para /api/generate-quiz para gerar perguntas automaticamente e depois POST para /api/quizzes para salvar o quiz gerado. Usa o token JWT para autenticação."
+  },
+  "QuizCreatorPage": {
+    "ui": "Se o usuário optar por criar ou editar um quiz, é levado à página de criação. Aqui pode adicionar perguntas manualmente, navegar entre elas, definir respostas corretas, tornar o quiz público e salvar. Também pode gerar perguntas com IA clicando em 'Generate with AI'.",
+    "code": "QuizCreatorPage gerencia o estado do quiz em criação/edição, permite adicionar/remover perguntas, editar opções e respostas, e salvar ou atualizar quizzes via API. Implementa geração automática de perguntas com IA, validação dos campos e navegação entre perguntas.",
+    "integracao_backend": "Ao editar um quiz existente, faz GET para /api/quiz/:id para buscar dados. Ao salvar, faz PUT para /api/quizzes/:id. Para criar novo quiz, faz POST para /api/quizzes. Para gerar perguntas com IA, faz POST para /api/generate-quiz. Todas as requisições usam o token JWT."
+  },
+  "ManualQuizCreator": {
+    "ui": "Modal para criação manual de quizzes, acessado ao editar um quiz existente. Permite adicionar, editar e remover perguntas, definir tópico e salvar o quiz. Também pode gerar perguntas via IA, se disponível.",
+    "code": "ManualQuizCreator gerencia o estado do quiz em criação, com lista de perguntas, tópico e integração com IA. Permite adicionar/remover perguntas, editar opções e respostas, e salvar ou atualizar quizzes via props. Utiliza QuizQuestionCard para edição de cada pergunta.",
+    "integracao_backend": "Ao salvar, faz PUT para /api/quizzes/:id (edição) ou POST para /api/quizzes (criação). Para gerar perguntas com IA, faz POST para /api/generate-quiz. Usa o token JWT para autenticação."
+  },
+  "QuizQuestionCard": {
+    "ui": "Ao criar ou editar perguntas, cada uma aparece em um cartão visual. O usuário pode digitar o texto, opções, marcar a correta, definir tempo e fazer upload de imagem. Ao clicar em uma opção, ela é marcada como correta.",
+    "code": "QuizQuestionCard recebe uma pergunta e exibe suas opções, permitindo edição se o modo for editável. Implementa upload de imagem, seleção de resposta correta, alteração de texto e opções, e exibe limite de tempo.",
+    "integracao_backend": "Ao fazer upload de imagem, faz POST para /api/upload enviando o arquivo. Recebe a URL da imagem para ser usada na pergunta. Usa o token JWT para autenticação."
+  },
+  "Quiz": {
+    "ui": "Ao clicar em 'Start Quiz' ou 'Review Quiz', o usuário entra na tela de realização do quiz. Cada pergunta é exibida com opções em estilo Kahoot. Ao clicar em uma opção, ela é marcada, mostra explicação e permite avançar. Ao final, exibe o resultado e opções para criar novo quiz ou ir ao perfil.",
+    "code": "Quiz busca os dados do quiz pela API, controla o estado da questão atual, resposta selecionada, tempo e pontuação. Implementa lógica para seleção de resposta, exibição de explicação, navegação entre perguntas e marcação de quiz como concluído.",
+    "integracao_backend": "Faz GET para /api/quiz/:id para buscar dados do quiz. Ao concluir, faz PUT para /api/quizzes/:id/complete para registrar o score. Para quizzes públicos, pode fazer POST para /api/quizzes/:id/attempt. Usa o token JWT para autenticação."
+  },
+  "Profile": {
+    "ui": "No menu ou ao finalizar um quiz, o usuário pode acessar o perfil. Aqui vê suas informações, estatísticas dos quizzes e histórico. Pode clicar em 'Edit', 'Share' ou 'Delete' para gerenciar quizzes. Ao clicar em 'Share', abre um modal para enviar por email.",
+    "code": "Profile carrega dados do usuário e quizzes da API, calcula estatísticas e permite ações como editar, compartilhar e excluir quizzes. Utiliza modais para compartilhamento e edição, além de atualizar a lista e estatísticas após cada ação.",
+    "integracao_backend": "Faz GET para /api/user para buscar dados do usuário e GET para /api/quizzes para listar quizzes. Ao editar, faz PUT para /api/quizzes/:id. Ao compartilhar, faz POST para /api/quizzes/:id/share. Ao excluir, faz DELETE para /api/quizzes/:id. Usa o token JWT para autenticação."
+  },
+  "PublicQuizzes": {
+    "ui": "Na barra de navegação, o usuário pode clicar em 'Public Quizzes' para explorar quizzes públicos. Pode clicar em 'Take Quiz' para realizar ou 'Review Quiz' para revisar quizzes já feitos.",
+    "code": "PublicQuizzes busca quizzes públicos da API, exibe em cartões, permite atualizar a lista e navegar para a realização ou revisão de quizzes.",
+    "integracao_backend": "Faz GET para /api/public-quizzes para listar quizzes públicos. Se o usuário estiver autenticado, também recebe o status de conclusão e score. Ao realizar um quiz público, faz POST para /api/quizzes/:id/attempt. Usa o token JWT se disponível."
+  },
+  "Backend": {
+    "descricao": "O backend é construído em Node.js com Express e PostgreSQL. Ele gerencia autenticação de usuários (login/cadastro), CRUD de quizzes, compartilhamento, tentativas, upload de imagens e serve arquivos estáticos. Utiliza JWT para autenticação, bcrypt para senhas e rate limiting para segurança. Todas as ações do frontend (login, criar quiz, responder, editar, compartilhar, etc) são feitas via rotas REST seguras.",
+    "rotas_principais": [
+      "/api/auth/register (POST) - Cadastro de usuário",
+      "/api/auth/login (POST) - Login de usuário",
+      "/api/user (GET) - Dados do usuário logado",
+      "/api/quizzes (GET, POST, PUT, DELETE) - CRUD de quizzes",
+      "/api/generate-quiz (POST) - Geração automática de quiz com IA",
+      "/api/public-quizzes (GET) - Listar quizzes públicos",
+      "/api/quizzes/:id/share (POST) - Compartilhar quiz",
+      "/api/quizzes/:id/complete (PUT) - Marcar quiz como concluído",
+      "/api/upload (POST) - Upload de imagens"
+    ]
+  },
+  "AI": {
+    "descricao": "A geração automática de quizzes utiliza a API Gemini da Google. Quando o usuário escolhe gerar perguntas com IA, o backend monta um prompt detalhado (em português ou outro idioma), pedindo perguntas de múltipla escolha, 4 opções, resposta correta e formato JSON. O backend envia esse prompt para a Gemini, recebe a resposta, limpa o texto, valida o JSON e retorna as perguntas prontas para o frontend. Isso permite criar quizzes rapidamente sobre qualquer tema, com perguntas originais e variadas.",
+    "fluxo": "1. Usuário clica em 'Generate with AI' no frontend. 2. O frontend faz POST para /api/generate-quiz com o tema, quantidade e idioma. 3. O backend monta o prompt e envia para a Gemini API. 4. Recebe as perguntas, valida e retorna para o frontend. 5. O usuário pode revisar, editar e salvar o quiz normalmente."
+  },
+  "Docker": {
+    "descricao": "O projeto utiliza Docker e docker-compose para facilitar a execução e o desenvolvimento. O arquivo docker-compose.yml define três serviços principais: db (PostgreSQL), backend (Node.js/Express) e frontend (React). Cada serviço tem seu próprio Dockerfile para construir a imagem. O banco de dados persiste os dados em um volume. O backend e o frontend usam volumes para hot reload durante o desenvolvimento. Variáveis de ambiente são usadas para configuração de senhas, chaves e URLs. Para subir o sistema, basta rodar 'docker-compose up' na raiz do projeto. O frontend ficará disponível em http://localhost:3000 e o backend em http://localhost:5000.",
+    "servicos": {
+      "db": "Usa a imagem oficial do Postgres, inicializa o banco com scripts em backend/migrations, expõe a porta 5432 e persiste dados em volume.",
+      "backend": "Constrói a imagem a partir do Dockerfile do backend, instala dependências, expõe a porta 5000, usa variáveis de ambiente para conectar ao banco e à API Gemini, e depende do serviço db.",
+      "frontend": "Constrói a imagem a partir do Dockerfile do frontend, faz build do React e serve os arquivos estáticos com o pacote 'serve', expõe a porta 3000 e depende do backend."
+    },
+    "comando": "docker-compose up"
+  }
+} 

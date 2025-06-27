@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import LoadingSpinner from './LoadingSpinner';
+import ManualQuizCreator from './ManualQuizCreator';
 
 interface Quiz {
   id: string;
@@ -10,6 +11,7 @@ interface Quiz {
   created_at: string;
   score?: number;
   completed?: boolean;
+  is_public_attempt?: boolean;
 }
 
 interface User {
@@ -23,6 +25,14 @@ interface QuizStats {
   completedQuizzes: number;
   averageScore: number;
   totalQuestions: number;
+}
+
+interface FullQuiz {
+  id: string;
+  topic: string;
+  questions: any[];
+  question_count: number;
+  public?: boolean;
 }
 
 const Profile: React.FC = () => {
@@ -41,6 +51,8 @@ const Profile: React.FC = () => {
   const [selectedQuiz, setSelectedQuiz] = useState<Quiz | null>(null);
   const [shareEmail, setShareEmail] = useState('');
   const [shareError, setShareError] = useState<string | null>(null);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [quizToEdit, setQuizToEdit] = useState<FullQuiz | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -79,13 +91,12 @@ const Profile: React.FC = () => {
   }, [navigate]);
 
   const calculateStats = (quizData: Quiz[]) => {
-    const completedQuizzes = quizData.filter(q => q.completed);
-    const totalScore = completedQuizzes.reduce((sum, q) => sum + (q.score || 0), 0);
-    
+    const completedQuizzes = quizData.filter(q => q.completed && typeof q.score === 'number' && q.question_count > 0);
+    const totalScore = completedQuizzes.reduce((sum, q) => sum + (q.score! / q.question_count), 0);
     setStats({
       totalQuizzes: quizData.length,
       completedQuizzes: completedQuizzes.length,
-      averageScore: completedQuizzes.length ? totalScore / completedQuizzes.length : 0,
+      averageScore: completedQuizzes.length ? (totalScore / completedQuizzes.length) * 100 : 0,
       totalQuestions: quizData.reduce((sum, q) => sum + q.question_count, 0)
     });
   };
@@ -126,6 +137,41 @@ const Profile: React.FC = () => {
       setShareError(null);
     } catch (err) {
       setShareError('Failed to share quiz');
+    }
+  };
+
+  const handleEditQuiz = async (quizId: string) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`http://localhost:5000/api/quiz/${quizId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setQuizToEdit(response.data);
+      setEditModalOpen(true);
+    } catch (err) {
+      setError('Failed to load quiz for editing');
+    }
+  };
+
+  const handleUpdateQuiz = async (updated: { id: string; topic: string; questions: any[] }) => {
+    try {
+      const token = localStorage.getItem('token');
+      await axios.put(`http://localhost:5000/api/quizzes/${updated.id}`, {
+        topic: updated.topic,
+        questions: updated.questions,
+        question_count: updated.questions.length,
+        public: quizToEdit?.public || false,
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      // Refresh quiz list
+      const quizzesResponse = await axios.get('http://localhost:5000/api/quizzes', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setQuizzes(quizzesResponse.data);
+      calculateStats(quizzesResponse.data);
+    } catch (err) {
+      setError('Failed to update quiz');
     }
   };
 
@@ -197,33 +243,52 @@ const Profile: React.FC = () => {
             <tbody className="bg-white dark:bg-dark-card divide-y divide-gray-200 dark:divide-gray-700">
               {filteredQuizzes.map((quiz) => (
                 <tr key={quiz.id}>
-                  <td className="px-6 py-4 whitespace-nowrap text-gray-900 dark:text-white">{quiz.topic}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-gray-900 dark:text-white">
+                    {quiz.topic}
+                    {quiz.is_public_attempt && (
+                      <span className="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                        Public Quiz
+                      </span>
+                    )}
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-gray-500 dark:text-gray-400">{quiz.question_count}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-gray-500 dark:text-gray-400">
                     {new Date(quiz.created_at).toLocaleDateString()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-gray-500 dark:text-gray-400">
-                    {quiz.score ? `${quiz.score}%` : 'Not completed'}
+                    {quiz.completed && typeof quiz.score === 'number' && quiz.question_count > 0
+                      ? `${Math.round((quiz.score / quiz.question_count) * 100)}%`
+                      : 'Not completed'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <button
                       onClick={() => navigate(`/quiz/${quiz.id}`)}
                       className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-300 mr-4"
                     >
-                      View
+                      {quiz.is_public_attempt ? 'Retake' : 'View'}
                     </button>
-                    <button
-                      onClick={() => handleShareQuiz(quiz.id)}
-                      className="text-green-600 dark:text-green-400 hover:text-green-900 dark:hover:text-green-300 mr-4"
-                    >
-                      Share
-                    </button>
-                    <button
-                      onClick={() => handleDeleteQuiz(quiz.id)}
-                      className="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300"
-                    >
-                      Delete
-                    </button>
+                    {!quiz.is_public_attempt && (
+                      <>
+                        <button
+                          onClick={() => handleShareQuiz(quiz.id)}
+                          className="text-green-600 dark:text-green-400 hover:text-green-900 dark:hover:text-green-300 mr-4"
+                        >
+                          Share
+                        </button>
+                        <button
+                          onClick={() => handleEditQuiz(quiz.id)}
+                          className="text-yellow-600 dark:text-yellow-400 hover:text-yellow-900 dark:hover:text-yellow-300 mr-4"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDeleteQuiz(quiz.id)}
+                          className="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300"
+                        >
+                          Delete
+                        </button>
+                      </>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -267,6 +332,16 @@ const Profile: React.FC = () => {
             </form>
           </div>
         </div>
+      )}
+
+      {editModalOpen && quizToEdit && (
+        <ManualQuizCreator
+          isOpen={editModalOpen}
+          onClose={() => setEditModalOpen(false)}
+          initialQuiz={{ id: quizToEdit.id, topic: quizToEdit.topic, questions: quizToEdit.questions }}
+          onUpdate={handleUpdateQuiz}
+          onSave={() => {}}
+        />
       )}
     </div>
   );

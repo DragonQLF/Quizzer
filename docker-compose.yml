@@ -9,12 +9,21 @@ services:
       POSTGRES_PASSWORD: postgres
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./backend/src/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./backend/migrations:/docker-entrypoint-initdb.d
     ports:
       - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   backend:
-    build: ./backend
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+      cache_from:
+        - node:18-alpine
     env_file:
       - ./.env
     environment:
@@ -25,17 +34,32 @@ services:
       - DB_PORT=5432
       - JWT_SECRET=your-secret-key-here
       - GEMINI_API_KEY=AIzaSyAsHVhMjvDvLY18vD8feEGzgB7jh-R91XQ
+      - NODE_ENV=development
     ports:
       - "5000:5000"
+    volumes:
+      - ./backend/src:/app/src
+      - /app/node_modules
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      cache_from:
+        - node:18-alpine
     ports:
       - "3000:3000"
     environment:
       - REACT_APP_API_URL=http://localhost:5000
+      - NODE_ENV=development
+      - WATCHPACK_POLLING=true
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
+      - /app/node_modules
     depends_on:
       - backend
 
